@@ -38,10 +38,12 @@ public sealed class User
     public DateTimeOffset? LastLoginAt { get; private set; }
     public IReadOnlyCollection<RefreshToken> RefreshTokens => _refreshTokens;
 
+    public static string NormalizeEmail(string email) => RequireValue(email, nameof(email)).ToUpperInvariant();
+
     private void SetEmail(string email)
     {
         Email = RequireValue(email, nameof(email));
-        NormalizedEmail = Email.ToUpperInvariant();
+        NormalizedEmail = NormalizeEmail(Email);
     }
 
     private static string RequireValue(string value, string parameterName)

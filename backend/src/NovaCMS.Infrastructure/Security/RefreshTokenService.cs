@@ -1,7 +1,4 @@
-using System.Security.Cryptography;
-using System.Text;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
 using NovaCMS.Application.Security;
 using NovaCMS.Domain.Authentication;
 using NovaCMS.Infrastructure.Persistence;
@@ -10,15 +7,13 @@ namespace NovaCMS.Infrastructure.Security;
 
 internal sealed class RefreshTokenService(
     NovaCmsDbContext dbContext,
-    IOptions<JwtOptions> options,
+    RefreshTokenFactory tokenFactory,
     TimeProvider timeProvider) : IRefreshTokenService
 {
-    private readonly JwtOptions _options = options.Value;
-
     public async Task<RefreshTokenResult> CreateAsync(Guid userId, CancellationToken cancellationToken = default)
     {
         EnsurePersistenceBoundary();
-        var (entity, result) = Generate(userId, timeProvider.GetUtcNow());
+        var (entity, result) = tokenFactory.Generate(userId, timeProvider.GetUtcNow());
         dbContext.RefreshTokens.Add(entity);
         try
         {
@@ -43,7 +38,7 @@ internal sealed class RefreshTokenService(
             return RefreshTokenRotationResult.Failed(status);
         }
 
-        var (replacement, result) = Generate(existing!.UserId, now);
+        var (replacement, result) = tokenFactory.Generate(existing!.UserId, now);
         await using var transaction = await dbContext.Database.BeginTransactionAsync(cancellationToken);
         dbContext.RefreshTokens.Add(replacement);
         try
@@ -98,7 +93,7 @@ internal sealed class RefreshTokenService(
             return Task.FromResult<RefreshToken?>(null);
         }
 
-        var hash = Hash(token);
+        var hash = RefreshTokenFactory.Hash(token);
         // ExecuteUpdate bypasses tracking. A caller may already have loaded this token;
         // detach that snapshot so later tracked queries cannot return its stale active state.
         foreach (var entry in dbContext.ChangeTracker.Entries<RefreshToken>()
@@ -110,18 +105,6 @@ internal sealed class RefreshTokenService(
         return dbContext.RefreshTokens.AsNoTracking()
             .SingleOrDefaultAsync(candidate => candidate.TokenHash == hash, cancellationToken);
     }
-
-    private (RefreshToken Entity, RefreshTokenResult Result) Generate(Guid userId, DateTimeOffset now)
-    {
-        // 32 random bytes = 256 bits of entropy. Encoding is transport formatting, not encryption.
-        var token = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32))
-            .TrimEnd('=').Replace('+', '-').Replace('/', '_');
-        var expiresAt = now.Add(_options.RefreshTokenLifetime);
-        return (new RefreshToken(Guid.NewGuid(), userId, Hash(token), expiresAt, now),
-            new RefreshTokenResult(token, expiresAt));
-    }
-
-    private static string Hash(string token) => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(token)));
 
     private static RefreshTokenStatus GetStatus(RefreshToken? token, DateTimeOffset now) => token switch
     {
