@@ -38,6 +38,10 @@ public static class DependencyInjection
         services.AddSingleton(TimeProvider.System);
         services.AddSingleton<IAccessTokenGenerator, JwtAccessTokenGenerator>();
         services.AddScoped<IRefreshTokenService, RefreshTokenService>();
+        services.AddSingleton<RefreshTokenFactory>();
+        services.AddSingleton<LoginTimingProtection>();
+        services.AddScoped<IAuthenticationUserStore, AuthenticationUserStore>();
+        services.AddScoped<ILoginService, LoginService>();
 
         return services;
     }
