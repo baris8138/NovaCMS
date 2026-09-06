@@ -193,7 +193,8 @@ public sealed class JwtAccessTokenGeneratorTests
             ["Jwt:Issuer"] = Issuer,
             ["Jwt:Audience"] = Audience,
             ["Jwt:SigningKey"] = SigningKey,
-            ["Jwt:AccessTokenLifetime"] = "00:15:00"
+            ["Jwt:AccessTokenLifetime"] = "00:15:00",
+            ["Jwt:RefreshTokenLifetime"] = "7.00:00:00"
         };
 
         if (overrides is not null)

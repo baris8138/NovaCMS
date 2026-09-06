@@ -32,9 +32,12 @@ public static class DependencyInjection
                 "Jwt:SigningKey must contain at least 256 bits (32 UTF-8 bytes) of key material.")
             .Validate(options => options.AccessTokenLifetime > TimeSpan.Zero,
                 "Jwt:AccessTokenLifetime must be greater than zero.")
+            .Validate(options => options.RefreshTokenLifetime > TimeSpan.Zero,
+                "Jwt:RefreshTokenLifetime must be greater than zero.")
             .ValidateOnStart();
         services.AddSingleton(TimeProvider.System);
         services.AddSingleton<IAccessTokenGenerator, JwtAccessTokenGenerator>();
+        services.AddScoped<IRefreshTokenService, RefreshTokenService>();
 
         return services;
     }

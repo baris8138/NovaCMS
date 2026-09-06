@@ -8,4 +8,5 @@ internal sealed class JwtOptions
     public string Audience { get; init; } = string.Empty;
     public string SigningKey { get; init; } = string.Empty;
     public TimeSpan AccessTokenLifetime { get; init; }
+    public TimeSpan RefreshTokenLifetime { get; init; }
 }
